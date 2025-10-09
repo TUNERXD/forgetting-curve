@@ -1,5 +1,6 @@
 from data import TaskManager
-from gui import Program
+# from gui import Program
+from test import Program
 
 def main():
     task_manager = TaskManager()
