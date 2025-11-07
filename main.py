@@ -1,11 +1,6 @@
-from data import TaskManager
-# from gui import Program
-from test import Program
-
-def main():
-    task_manager = TaskManager()
-    app = Program(task_manager)
-    app.run()
+import customtkinter
+from gui import App
 
 if __name__ == "__main__":
-    main()
+    app = App()
+    app.mainloop()

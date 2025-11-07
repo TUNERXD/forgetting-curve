@@ -1,123 +1,234 @@
-from datetime import datetime
+import datetime
+import math
 from abc import ABC, abstractmethod
+from typing import Optional
+import pickle
+import os
 
-'''
-The Forgetting Curve Formula
-R = e^(-t/S)
-
-R = memory retention
-t = time since learning
-S = Strength of learning
-'''
+INTERVALS_IN_DAYS = [1, 3, 7, 14, 30, 60, 120] 
+SAVE_FILE = "tasks.pkl"
 
 class TaskManager(object):
     
     def __init__(self):
-        self._assignments = []
-        self._study_topics = []
-        self._all_subjects = []
+        self.__tasks = []
 
-        # --- Sample Data ---
-        self.set_assignments(name="Finish Python Homework", due_date="2025-10-10", priority=1)
-        self.set_assignments(name="Finish Python Homework", due_date="2025-10-10", priority=1)
-        self.set_study_topics("Calculus Review", 85)
-        self.set_study_topics("Physics Kinematics", 92)
+    def add_task(self, task):
+        self.__tasks.append(task)
 
-    def get_assignments(self):
-        return self._assignments
+    def delete_task(self, task):
+        if task in self.__tasks:
+            self.__tasks.remove(task)
+            
+    def get_tasks(self):
+        
+        def sort_key(task):
+            '''
+            1) Due study
+            2) Due Work Priority high -> medium -> low
+            3) Work Priority high -> medium -> low
+            4) fall back
+            '''
     
-    def set_assignments(self, name, due_date, priority):
-        self._assignments.append(Assignment(name, due_date, priority))
+            if isinstance(task, StudyTask):
+                if task.is_due():
+                    return (1, task.due_date)
+                else:
+                    
+                    return (9, task.due_date)
+            
+            elif isinstance(task, WorkTask):
 
-    def get_study_topics(self):
-        return self._study_topics
-    
-    def set_study_topics(self, name, retention):
-        self._study_topics.append(Study(name, retention))
+                if task.is_due():
+                    sort_group = 5 - task.priority
+                    return (sort_group, task.due_date)
+                else:
+
+                    sort_group = 8 - task.priority
+                    return (sort_group, task.due_date)
+            
+            else:
+                
+                return (10, task.created_at)
+
+        self.__tasks.sort(key=sort_key)
+        return self.__tasks
+        
+    def save_tasks(self, filename=SAVE_FILE):
+        
+        try:
+            with open(filename, "wb") as f:
+                pickle.dump(self, f)
+            print("Tasks saved successfully.")
+        except Exception as e:
+            print(f"Error saving tasks: {e}")
+
+    @staticmethod
+    def load_tasks(filename=SAVE_FILE):
+        if os.path.exists(filename):
+            try:
+                with open(filename, "rb") as f:
+                    manager = pickle.load(f)
+                    print("Tasks loaded successfully.")
+                    return manager
+            except (pickle.UnpicklingError, EOFError, AttributeError, ImportError, IndexError) as e:
+                print(f"Error loading tasks file. Creating a new one. Error: {e}")
+                return TaskManager()
+        else:
+            print("No save file found. Starting new TaskManager.")
+            return TaskManager()
 
 
 class Task(ABC):
-
-    def __init__(self, name):
-        self._name = name
+    
+    def __init__(self, name, note):
+        self.__name = name
+        self.__note = note
+        self.__created_at = datetime.datetime.now()
+        self.__due_date = datetime.datetime.now()
+        self.__due_date_str = self.__due_date.strftime("%Y-%m-%d")
+            
 
     @property
-    @abstractmethod
-    def name(self):
-        return self._name
-    
-    @name.setter
-    @abstractmethod
-    def name(self, new_name):
-        self.name = new_name
-
-class Study(Task):
-    def __init__(self, name, retention):
-        super().__init__(name)
-        self._date = datetime.now().date()
-        self._retention = retention
-        self._next_review = self._date
-        self._rep = 1
+    def created_at(self):
+        return self.__created_at
 
     @property
     def name(self):
-        return self._name
+        return self.__name
     
     @name.setter
     def name(self, new_name):
-        self._name  = new_name
-
-    @property
-    def retention(self):
-        return self._retention
-    
-    @retention.setter
-    def retention(self, new_retention):
-        self._retention = new_retention
-
-    @property
-    def next_review(self):
-        return self._next_review
-    
-    @next_review.setter
-    def next_review(self, new_date):
-        self._next_review = new_date
-
-class Assignment(Task):
-    def __init__(self, name, due_date, priority):
-        super().__init__(name)
-        self._due_date = due_date
-        # self._subject = subject
-        self._priority = priority
-
-    @property
-    def name(self):
-        return self._name
-    
-    @name.setter
-    def name(self, new_name):
-        self._name  = new_name
+        self.__name = new_name
 
     @property
     def due_date(self):
-        return self._due_date
+        return self.__due_date
+        
+    @property
+    def due_date_str(self):
+        return self.__due_date_str
     
     @due_date.setter
-    def due_date(self, new_date):
-        self._due_date = new_date
+    def due_date(self, new_date: datetime.datetime):
+        self.__due_date = new_date
+        self.__due_date_str = new_date.strftime("%Y-%m-%d")
+        
+    @property
+    def note(self):
+        return self.__note
+        
+    @note.setter
+    def note(self, new_note):
+        self.__note = new_note
+
+    @abstractmethod
+    def get_details(self) -> str:
+        pass
+        
+    @abstractmethod
+    def get_task_type(self) -> str:
+        pass
+        
+    @abstractmethod
+    def get_retention_percent(self) -> Optional[float]:
+        pass
+
+    @abstractmethod
+    def is_due(self):
+        pass
+    
+    def get_common_display(self) -> str:
+        return f"Due: {self.due_date_str}\nNote: {self.note}"
+
+class StudyTask(Task):
+
+    def __init__(self, name, note):
+        super().__init__(name, note)
+        
+        self.__last_review = datetime.datetime.now()
+        self.__level = 0
+
+        self.due_date = self.__last_review
+
+
+    @property
+    def level(self):
+        return self.__level
+    
+    def level_increment(self):
+
+        if self.__level < len(INTERVALS_IN_DAYS):
+            self.__level += 1
+            days_to_add = INTERVALS_IN_DAYS[self.__level - 1]
+            
+            self.__last_review = datetime.datetime.now()
+            self.due_date = self.__last_review + datetime.timedelta(days=days_to_add)
+            
+            print(f"Reviewed '{self.name}'. New level: {self.level}. Next review on {self.due_date.strftime('%Y-%m-%d')}")
+        else:
+            self.__last_review = datetime.datetime.now()
+            self.due_date = self.__last_review + datetime.timedelta(days=INTERVALS_IN_DAYS[-1])
+            print(f"Reviewed '{self.name}'. Still at max level {self.level}. Next review on {self.due_date.strftime('%Y-%m-%d')}")
+
+    @property
+    def last_review(self):
+        return self.__last_review
+        
+    def is_due(self) -> bool:
+        return self.__level == 0 or datetime.datetime.now() >= self.due_date
+
+    def get_details(self) -> str:
+        review_status = "Now" if self.is_due() else self.due_date.strftime('%Y-%m-%d')
+        return f"Level: {self.level}\nNext Review: {review_status}"
+        
+    def get_task_type(self) -> str:
+        return "Study"
+        
+    def get_retention_percent(self) -> Optional[float]:
+
+        t = ((datetime.datetime.now() - self.__last_review).total_seconds())/ 86400
+
+        if self.__level == 0:
+            s = INTERVALS_IN_DAYS[0]
+        elif self.__level >= len(INTERVALS_IN_DAYS):
+            s = INTERVALS_IN_DAYS[-1]
+        else:
+            s = INTERVALS_IN_DAYS[self.__level - 1]
+
+        retention = math.e ** -(t / (4*s))
+        return max(0.0, retention)
+
+
+class WorkTask(Task):
+    
+    def __init__(self, name, due_date_str, note, priority: int = 0):
+        super().__init__(name, note)
+        
+        try:
+            self.due_date = datetime.datetime.strptime(due_date_str, "%Y-%m-%d")
+        except ValueError:
+            self.due_date = datetime.datetime.now() + datetime.timedelta(days=1)
+            
+        self.__priority = priority
 
     @property
     def priority(self):
-        return self._priority
+        return self.__priority
     
     @priority.setter
     def priority(self, new_priority):
-        self._priority = new_priority
-
-    # @property
-    # def subject(self):
-    #     return self._subject
+        self.__priority = new_priority
     
-    # @subject.setter
-    # def subject(self, new_subject):
-    #     self._subject = new_subject
+    def get_details(self) -> str:
+        priority_map = {0: "Low", 1: "Medium", 2: "High"}
+        return f"Priority: {priority_map.get(self.priority, 'Low')}"
+        
+    def get_task_type(self) -> str:
+        return "Work"
+
+    def get_retention_percent(self) -> Optional[float]:
+        return None
+    
+    def is_due(self):
+        return datetime.datetime.now() >= self.due_date
