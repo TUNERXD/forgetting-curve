@@ -145,12 +145,11 @@ class StudyTask(Task):
 
     def __init__(self, name, note):
         super().__init__(name, note)
-        
+        self.__decrease = False
         self.__last_review = datetime.datetime.now()
         self.__level = 0
 
         self.due_date = self.__last_review
-
 
     @property
     def level(self):
@@ -164,13 +163,20 @@ class StudyTask(Task):
             
             self.__last_review = datetime.datetime.now()
             self.due_date = self.__last_review + datetime.timedelta(days=days_to_add)
-            
-            print(f"Reviewed '{self.name}'. New level: {self.level}. Next review on {self.due_date.strftime('%Y-%m-%d')}")
+
+            self.__decrease = False
         else:
             self.__last_review = datetime.datetime.now()
             self.due_date = self.__last_review + datetime.timedelta(days=INTERVALS_IN_DAYS[-1])
-            print(f"Reviewed '{self.name}'. Still at max level {self.level}. Next review on {self.due_date.strftime('%Y-%m-%d')}")
-
+    
+    def level_decrement(self):
+        if not self.__decrease:
+            if self.__level - 1 < 0:
+                self.__level = 0
+            else:
+                self.__level -= 1
+            self.__decrease = True
+        
     @property
     def last_review(self):
         return self.__last_review

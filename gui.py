@@ -2,7 +2,7 @@ import customtkinter
 import datetime
 from typing import Optional
 
-from data import TaskManager, Task, StudyTask, WorkTask
+from test import TaskManager, Task, StudyTask, WorkTask
 
 # main app
 class App(customtkinter.CTk):
@@ -109,7 +109,7 @@ class App(customtkinter.CTk):
         self.work_tasks_scrollable_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.work_tasks_scrollable_frame.grid_columnconfigure(0, weight=1)
 
-
+        self.refresh_task()
         self.refresh_task()
         self.update_details_panel()
 
@@ -218,6 +218,11 @@ class App(customtkinter.CTk):
             all_task_frame.pack(fill="x", padx=5, pady=5)
             
             if isinstance(task, StudyTask):
+
+                # decrease 1 level if retention lower than 45%
+                if task.get_retention_percent() < 0.45:
+                    task.level_decrement()
+
                 study_task_frame = self.create_task(self.study_tasks_scrollable_frame, task)
                 study_task_frame.pack(fill="x", padx=5, pady=5)
                 study_count += 1
