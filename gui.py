@@ -2,7 +2,7 @@ from CTkMessagebox import CTkMessagebox
 import customtkinter
 import datetime
 
-from test import TaskManager, Task, StudyTask, WorkTask
+from data import TaskManager, Task, StudyTask, WorkTask
 
 # main app
 class App(customtkinter.CTk):
