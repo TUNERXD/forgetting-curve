@@ -125,10 +125,6 @@ class Task(ABC):
     @abstractmethod
     def get_task_type(self) -> str:
         pass
-        
-    @abstractmethod
-    def get_retention_percent(self) -> Optional[float]:
-        pass
 
     @abstractmethod
     def is_due(self):
@@ -196,7 +192,7 @@ class StudyTask(Task):
     def get_task_type(self) -> str:
         return "Study"
         
-    def get_retention_percent(self) -> Optional[float]:
+    def get_retention_percent(self):
 
         # --- CHANGED ---
         # 't' is now total elapsed time in MINUTES
@@ -245,9 +241,6 @@ class WorkTask(Task):
         
     def get_task_type(self) -> str:
         return "Work"
-
-    def get_retention_percent(self) -> Optional[float]:
-        return None
     
     def is_due(self):
         return datetime.datetime.now() >= self.due_date

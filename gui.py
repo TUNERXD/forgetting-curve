@@ -1,3 +1,4 @@
+from CTkMessagebox import CTkMessagebox
 import customtkinter
 import datetime
 from typing import Optional
@@ -9,28 +10,32 @@ class App(customtkinter.CTk):
     
     def __init__(self):
         super().__init__()
-
         self.title("Forgetting Curve Study/Task Scheduler")
         self.geometry("1100x700")
         customtkinter.set_appearance_mode("System")
         
+        # initialize task manager
         self.task_manager = TaskManager.load_tasks()
         self.add_toplevel_window: Optional[TaskAddToplevel] = None
         self.edit_toplevel_window: Optional[TaskEditToplevel] = None
         self.selected_task: Optional[Task] = None
 
+        # 30% control 70% Tasks
         self.grid_columnconfigure(0, weight=3)
         self.grid_columnconfigure(1, weight=7)
         self.grid_rowconfigure(0, weight=1)
 
-        # --- Left Frame: Controls & Details ---
+        # ========== Left Frame: Menu ========== #
         self.controls_frame = customtkinter.CTkFrame(self)
         self.controls_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         self.controls_frame.grid_columnconfigure(0, weight=1)
+        self.controls_frame.grid_rowconfigure(3, weight=1)
 
-        self.label_add = customtkinter.CTkLabel(self.controls_frame, text="Menu", font=customtkinter.CTkFont(size=20, weight="bold"))
-        self.label_add.grid(row=0, column=0, padx=10, pady=10)
+        # Title of left frame
+        self.label = customtkinter.CTkLabel(self.controls_frame, text="Menu", font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.label.grid(row=0, column=0, padx=10, pady=10)
 
+        # Add task Button
         self.add_task_button = customtkinter.CTkButton(self.controls_frame, text="Add New Task", command=self.open_add)
         self.add_task_button.grid(row=1, column=0, padx=20, pady=20, sticky="ew")
 
@@ -38,37 +43,37 @@ class App(customtkinter.CTk):
         self.refresh_button.grid(row=2, column=0, padx=20, pady=0, sticky="ew")
 
 
-        # --- Task Details frame ---
+        # ---------- Task Details ---------- #
         self.details_frame = customtkinter.CTkFrame(self.controls_frame, fg_color="gray20")
         self.details_frame.grid(row=3, column=0, padx=20, pady=20, sticky="nsew")
         self.details_frame.grid_columnconfigure(0, weight=1)
-        self.controls_frame.grid_rowconfigure(3, weight=1)
         
+        # Title
         self.details_label = customtkinter.CTkLabel(self.details_frame, text="Task Details", font=customtkinter.CTkFont(size=16, weight="bold"))
         self.details_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
-        
+
+        # Name of Selected task
         self.details_name_label = customtkinter.CTkLabel(self.details_frame, text="Select a task to see details.", justify="left", wraplength=250)
         self.details_name_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        
+
+        # Name of Selected task
         self.details_common_label = customtkinter.CTkLabel(self.details_frame, text="", justify="left")
         self.details_common_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
         
+        # Name, Due date of Selected task
         self.details_specific_label = customtkinter.CTkLabel(self.details_frame, text="", justify="left")
         self.details_specific_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
-        self.detail_note_scrollable_frame = customtkinter.CTkScrollableFrame(self.details_frame)
-        self.details_note_label = customtkinter.CTkLabel(self.detail_note_scrollable_frame, text="", justify="left")
 
-        
-
-        # --- details frame buttons ---
-
+        # ---------- detail buttons frame ---------- #
         self.review_button_frame = customtkinter.CTkFrame(self.details_frame, fg_color="transparent")
         self.review_button_frame.grid(row=4, column=0, padx=10, pady=2, sticky="ew")
         self.review_button_frame.grid_columnconfigure(0, weight=1)
 
+        # Review button for StudyTask    
         self.review_button = customtkinter.CTkButton(self.review_button_frame, text="Mark as Reviewed", command=self.review_selected_task)
 
+        # Common Buttons, Add/Edit
         self.details_button_frame = customtkinter.CTkFrame(self.details_frame, fg_color="transparent")
         self.details_button_frame.grid(row=5, column=0, padx=10, pady=2, sticky="ew")
         self.details_button_frame.grid_columnconfigure(0, weight=1)
@@ -78,37 +83,39 @@ class App(customtkinter.CTk):
         self.delete_button = customtkinter.CTkButton(self.details_button_frame, text="Delete Task", fg_color="gray30", hover_color="gray40", command=self.delete_selected_task)
 
 
-        # ==== Task List ====#
+        # ========== Right Frame: Task List ========== #
 
-        # --- Right Frame ---
+        # ---------- Create Tabs ---------- #
         self.tab_view = customtkinter.CTkTabview(self)
         self.tab_view.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
+        # add each tab to tab_view
         self.tab_all = self.tab_view.add("All Tasks")
         self.tab_study = self.tab_view.add("Study")
         self.tab_work = self.tab_view.add("Work")
         
-        # --- All Tasks Scrollable Frame ---
+        # ---------- All Tasks Tab Scrollable Frame ---------- #
         self.tab_all.grid_columnconfigure(0, weight=1)
         self.tab_all.grid_rowconfigure(0, weight=1)
         self.all_tasks_scrollable_frame = customtkinter.CTkScrollableFrame(self.tab_all)
         self.all_tasks_scrollable_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.all_tasks_scrollable_frame.grid_columnconfigure(0, weight=1)
         
-        # --- Study Scrollable Frame ---
+        # ---------- StudyTask Tab Scrollable Frame ---------- #
         self.tab_study.grid_columnconfigure(0, weight=1)
         self.tab_study.grid_rowconfigure(0, weight=1)
         self.study_tasks_scrollable_frame = customtkinter.CTkScrollableFrame(self.tab_study)
         self.study_tasks_scrollable_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.study_tasks_scrollable_frame.grid_columnconfigure(0, weight=1)
         
-        # --- Work Scrollable Frame ---
+        # ---------- WorkTask Tab Scrollable Frame ---------- #
         self.tab_work.grid_columnconfigure(0, weight=1)
         self.tab_work.grid_rowconfigure(0, weight=1)
         self.work_tasks_scrollable_frame = customtkinter.CTkScrollableFrame(self.tab_work)
         self.work_tasks_scrollable_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.work_tasks_scrollable_frame.grid_columnconfigure(0, weight=1)
 
+        # Initial Refresh
         self.refresh_task()
         self.refresh_task()
         self.update_details_panel()
@@ -131,20 +138,28 @@ class App(customtkinter.CTk):
             self.edit_toplevel_window.focus()
             
     def create_task(self, master_frame, task: Task) -> customtkinter.CTkFrame:
+        '''
+        Function to Create Task Card
+        '''
         
         task_frame = customtkinter.CTkFrame(master_frame, fg_color="gray20")
         task_frame.columnconfigure(0, weight=1)
 
         task_details = task.get_details()
-        retention_percent = task.get_retention_percent()
         
+
+        # Normal Task color
         type_color = "#59ff72"
+
+        # WorkTask Color
         if isinstance(task, WorkTask):
             type_color = "#1976D2"
         
+        # Task Due color
         if task.is_due():
             type_color = "#FBC02D"
             
+            # Color Based on WorkTask Priority
             if isinstance(task, WorkTask):
                 if task.priority == 2:
                     type_color = "#eb0000"
@@ -166,8 +181,9 @@ class App(customtkinter.CTk):
 
         name_label = customtkinter.CTkLabel(task_frame, text=task.name, font=customtkinter.CTkFont(size=16, weight="bold"), justify="left")
         name_label.grid(row=1, column=0, padx=10, pady=(0, 5), sticky="w")
-        
-        if retention_percent is not None:
+
+        if isinstance(task, StudyTask):
+            retention_percent = task.get_retention_percent()
             progress_bar = customtkinter.CTkProgressBar(task_frame, height=10)
             progress_bar.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="ew")
             progress_bar.set(retention_percent)
@@ -182,7 +198,8 @@ class App(customtkinter.CTk):
         type_label.bind("<Button-1>", click_handler)
         details_label.bind("<Button-1>", click_handler)
         name_label.bind("<Button-1>", click_handler)
-        if retention_percent is not None:
+
+        if isinstance(task, StudyTask):
             progress_bar.bind("<Button-1>", click_handler)
             retention_label.bind("<Button-1>", click_handler)
             
@@ -370,7 +387,7 @@ class TaskAddToplevel(customtkinter.CTkToplevel):
         task_type = self.task_type_var.get()
 
         if not name:
-            print("Error: Name is required.")
+            show_error("Name is Required")
             return
 
         if task_type == "Study":
@@ -379,14 +396,14 @@ class TaskAddToplevel(customtkinter.CTkToplevel):
         else:
             due_date_str = self.duedate_entry.get()
             if not due_date_str:
-                print("Error: Due Date is required for Work tasks.")
+                show_error("Due Date is required.")
                 return
                 
             try:
                 # Validate date format
                 datetime.datetime.strptime(due_date_str, "%Y-%m-%d")
             except ValueError:
-                print("Error: Date must be in YYYY-MM-DD format.")
+                show_error("Date must be in YYYY-MM-DD format.")
                 return
                 
             priority = self.priority_var.get()
@@ -395,7 +412,6 @@ class TaskAddToplevel(customtkinter.CTkToplevel):
         self.task_manager.add_task(new_task)
         self.sr()
         self.destroy()
-
 
 # edit task window
 class TaskEditToplevel(customtkinter.CTkToplevel):
@@ -473,7 +489,7 @@ class TaskEditToplevel(customtkinter.CTkToplevel):
         note = self.note_entry.get()
 
         if not name:
-            print("Error: Name is required.")
+            show_error("Name is Required")
             return
 
         self.task.name = name
@@ -482,13 +498,13 @@ class TaskEditToplevel(customtkinter.CTkToplevel):
         if isinstance(self.task, WorkTask):
             due_date_str = self.duedate_entry.get()
             if not due_date_str:
-                print("Error: Due Date is required for Work tasks.")
+                show_error("Due Date is required.")
                 return
             
             try:
                 new_due_date = datetime.datetime.strptime(due_date_str, "%Y-%m-%d")
             except ValueError:
-                print("Error: Date must be in YYYY-MM-DD format.")
+                show_error("Date must be in YYYY-MM-DD format.")
                 return
                 
             self.task.due_date = new_due_date
@@ -496,3 +512,8 @@ class TaskEditToplevel(customtkinter.CTkToplevel):
         
         self.sr()
         self.destroy()
+
+
+def show_error(msg):
+        # Show some error message
+        CTkMessagebox(title="Error", message=msg, icon="cancel")
