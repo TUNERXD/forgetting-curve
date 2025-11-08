@@ -1,7 +1,6 @@
 from CTkMessagebox import CTkMessagebox
 import customtkinter
 import datetime
-from typing import Optional
 
 from test import TaskManager, Task, StudyTask, WorkTask
 
@@ -16,9 +15,9 @@ class App(customtkinter.CTk):
         
         # initialize task manager
         self.task_manager = TaskManager.load_tasks()
-        self.add_toplevel_window: Optional[TaskAddToplevel] = None
-        self.edit_toplevel_window: Optional[TaskEditToplevel] = None
-        self.selected_task: Optional[Task] = None
+        self.add_toplevel_window = None
+        self.edit_toplevel_window = None
+        self.selected_task = None
 
         # 30% control 70% Tasks
         self.grid_columnconfigure(0, weight=3)
@@ -117,10 +116,12 @@ class App(customtkinter.CTk):
 
         # Initial Refresh
         self.refresh_task()
-        self.refresh_task()
         self.update_details_panel()
 
     def open_add(self):
+        '''
+        Method to open Add task window
+        '''
         
         if self.add_toplevel_window is None or not self.add_toplevel_window.winfo_exists():
             self.add_toplevel_window = TaskAddToplevel(self, task_manager=self.task_manager, sr = self.save_refresh)
@@ -128,6 +129,9 @@ class App(customtkinter.CTk):
             self.add_toplevel_window.focus()
             
     def open_edit(self):
+        '''
+        Method to open Edit task window
+        '''
         
         if not self.selected_task:
             return
@@ -141,10 +145,11 @@ class App(customtkinter.CTk):
         '''
         Function to Create Task Card
         '''
-        
+        # Create a an empty frame
         task_frame = customtkinter.CTkFrame(master_frame, fg_color="gray20")
         task_frame.columnconfigure(0, weight=1)
 
+        # get the task details
         task_details = task.get_details()
         
 
@@ -166,8 +171,6 @@ class App(customtkinter.CTk):
                 elif task.priority == 1:
                     type_color = "#fc8f00"
                     
-
-
 
         header_frame = customtkinter.CTkFrame(task_frame, fg_color="transparent")
         header_frame.grid(row=0, column=0, padx=10, pady=(5,0), sticky="ew")
@@ -208,6 +211,7 @@ class App(customtkinter.CTk):
             
     def refresh_task(self):
         
+        # destroy all widgets in every tabs
         for widget in self.all_tasks_scrollable_frame.winfo_children():
             widget.destroy()
         for widget in self.study_tasks_scrollable_frame.winfo_children():
@@ -215,8 +219,10 @@ class App(customtkinter.CTk):
         for widget in self.work_tasks_scrollable_frame.winfo_children():
             widget.destroy()
 
+        # Get all tasks
         tasks = self.task_manager.get_tasks()
         
+        # if tasks = []
         if not tasks:
             label_all = customtkinter.CTkLabel(self.all_tasks_scrollable_frame, text="No tasks added yet.")
             label_all.pack(pady=10)
@@ -225,15 +231,12 @@ class App(customtkinter.CTk):
             label_work = customtkinter.CTkLabel(self.work_tasks_scrollable_frame, text="No Work tasks added yet.")
             label_work.pack(pady=10)
             
-
+        
         study_count = 0
         work_count = 0
 
         for task in tasks:
-            
-            all_task_frame = self.create_task(self.all_tasks_scrollable_frame, task)
-            all_task_frame.pack(fill="x", padx=5, pady=5)
-            
+
             if isinstance(task, StudyTask):
 
                 # decrease 1 level if retention lower than 45%
@@ -248,6 +251,9 @@ class App(customtkinter.CTk):
                 work_task_frame = self.create_task(self.work_tasks_scrollable_frame, task)
                 work_task_frame.pack(fill="x", padx=5, pady=5)
                 work_count += 1
+            
+            all_task_frame = self.create_task(self.all_tasks_scrollable_frame, task)
+            all_task_frame.pack(fill="x", padx=5, pady=5)
                 
         
         if study_count == 0 and tasks:
@@ -322,7 +328,7 @@ class App(customtkinter.CTk):
 # adding task window
 class TaskAddToplevel(customtkinter.CTkToplevel):
     
-    def __init__(self, master, task_manager, sr):
+    def __init__(self, master, task_manager: TaskManager, sr):
         super().__init__(master)
         
         self.task_manager = task_manager

@@ -1,13 +1,10 @@
 import datetime
 import math
 from abc import ABC, abstractmethod
-from typing import Optional
 import pickle
 import os
 
-# --- CHANGED ---
-# Switched to a short, minute-based list for testing
-INTERVALS_IN_MINUTES = [1, 2, 5, 10, 30, 60] # 1m, 2m, 5m, 10m, 30m, 1hr
+INTERVALS_IN_MINUTES = [1, 2, 3, 10, 30, 60, 120] 
 SAVE_FILE = "test.pkl"
 
 class TaskManager(object):
@@ -25,23 +22,33 @@ class TaskManager(object):
     def get_tasks(self):
         
         def sort_key(task):
+            '''
+            1) Due study
+            2) Due Work Priority high -> medium -> low
+            3) Work Priority high -> medium -> low
+            4) fall back
+            '''
     
             if isinstance(task, StudyTask):
                 if task.is_due():
-                    
                     return (1, task.due_date)
                 else:
                     
-                    return (5, task.due_date)
+                    return (9, task.due_date)
             
             elif isinstance(task, WorkTask):
 
-                sort_group = 4 - task.priority
-                return (sort_group, task.due_date)
+                if task.is_due():
+                    sort_group = 5 - task.priority
+                    return (sort_group, task.due_date)
+                else:
+
+                    sort_group = 8 - task.priority
+                    return (sort_group, task.due_date)
             
             else:
                 
-                return (6, task.created_at)
+                return (10, task.created_at)
 
         self.__tasks.sort(key=sort_key)
         return self.__tasks
@@ -77,8 +84,6 @@ class Task(ABC):
         self.__name = name
         self.__note = note
         self.__created_at = datetime.datetime.now()
-
-        # Initialize with a default. Child classes MUST set this.
         self.__due_date = datetime.datetime.now()
         self.__due_date_str = self.__due_date.strftime("%Y-%m-%d")
             
@@ -106,9 +111,7 @@ class Task(ABC):
     @due_date.setter
     def due_date(self, new_date: datetime.datetime):
         self.__due_date = new_date
-        # --- CHANGED ---
-        # Update string format to include time for testing
-        self.__due_date_str = new_date.strftime("%Y-%m-%d %H:%M")
+        self.__due_date_str = new_date.strftime("%Y-%m-%d")
         
     @property
     def note(self):
@@ -129,11 +132,9 @@ class Task(ABC):
     @abstractmethod
     def is_due(self):
         pass
-        
+    
     def get_common_display(self) -> str:
-        # --- CHANGED ---
-        # Show the new, more precise due date string
-        return f"Due: {self.due_date_str}\nNote: {self.note}"
+        return f"Due: {self.__due_date_str}\nNote: {self.__note}"
 
 class StudyTask(Task):
 
@@ -142,32 +143,27 @@ class StudyTask(Task):
         self.__decrease = False
         self.__last_review = datetime.datetime.now()
         self.__level = 0
-        
-        self.due_date = self.__last_review
 
+        self.due_date = self.__last_review
 
     @property
     def level(self):
         return self.__level
     
     def level_increment(self):
-        # --- CHANGED ---
-        # Logic now uses INTERVALS_IN_MINUTES
+
         if self.__level < len(INTERVALS_IN_MINUTES):
             self.__level += 1
-            minutes_to_add = INTERVALS_IN_MINUTES[self.__level - 1]
+            days_to_add = INTERVALS_IN_MINUTES[self.__level - 1]
             
             self.__last_review = datetime.datetime.now()
-            self.due_date = self.__last_review + datetime.timedelta(minutes=minutes_to_add)
+            self.due_date = self.__last_review + datetime.timedelta(days=days_to_add)
+
             self.__decrease = False
-            
-            print(f"Reviewed '{self.name}'. New level: {self.level}. Next review on {self.due_date.strftime('%Y-%m-%d %H:%M')}")
         else:
             self.__last_review = datetime.datetime.now()
-            minutes_to_add = INTERVALS_IN_MINUTES[-1]
-            self.due_date = self.__last_review + datetime.timedelta(minutes=minutes_to_add)
-            print(f"Reviewed '{self.name}'. Still at max level {self.level}. Next review on {self.due_date.strftime('%Y-%m-%d %H:%M')}")
-
+            self.due_date = self.__last_review + datetime.timedelta(days=INTERVALS_IN_MINUTES[-1])
+    
     def level_decrement(self):
         if not self.__decrease:
             if self.__level - 1 < 0:
@@ -184,21 +180,19 @@ class StudyTask(Task):
         return self.__level == 0 or datetime.datetime.now() >= self.due_date
 
     def get_details(self) -> str:
-        # --- CHANGED ---
-        # Show time for testing
-        review_status = "Now" if self.is_due() else self.due_date.strftime('%Y-%m-%d %H:%M')
+        review_status = "Now" if self.is_due() else self.due_date.strftime('%Y-%m-%d')
         return f"Level: {self.level}\nNext Review: {review_status}"
         
     def get_task_type(self) -> str:
         return "Study"
         
-    def get_retention_percent(self):
+    def get_retention_percent(self) -> float:
+        '''
+        Retention% = e^ -(t/s)
+        '''
 
-        # --- CHANGED ---
-        # 't' is now total elapsed time in MINUTES
-        t_in_minutes = (datetime.datetime.now() - self.__last_review).total_seconds() / 60
+        t = ((datetime.datetime.now() - self.__last_review).total_seconds())/ 60
 
-        # 's' is now the interval in MINUTES
         if self.__level == 0:
             s = INTERVALS_IN_MINUTES[0]
         elif self.__level >= len(INTERVALS_IN_MINUTES):
@@ -206,8 +200,7 @@ class StudyTask(Task):
         else:
             s = INTERVALS_IN_MINUTES[self.__level - 1]
 
-        # The formula is now (minutes / minutes)
-        retention = math.e ** -((t_in_minutes) / (4*s))
+        retention = math.e ** - (t / (4*s))
         return max(0.0, retention)
 
 
@@ -217,11 +210,7 @@ class WorkTask(Task):
         super().__init__(name, note)
         
         try:
-            # Try to parse with time, fallback to just date
-            try:
-                self.due_date = datetime.datetime.strptime(due_date_str, "%Y-%m-%d %H:%M")
-            except ValueError:
-                self.due_date = datetime.datetime.strptime(due_date_str, "%Y-%m-%d")
+            self.due_date = datetime.datetime.strptime(due_date_str, "%Y-%m-%d")
         except ValueError:
             self.due_date = datetime.datetime.now() + datetime.timedelta(days=1)
             

@@ -1,7 +1,6 @@
 import datetime
 import math
 from abc import ABC, abstractmethod
-from typing import Optional
 import pickle
 import os
 
@@ -129,17 +128,13 @@ class Task(ABC):
     @abstractmethod
     def get_task_type(self) -> str:
         pass
-        
-    @abstractmethod
-    def get_retention_percent(self) -> Optional[float]:
-        pass
 
     @abstractmethod
     def is_due(self):
         pass
     
     def get_common_display(self) -> str:
-        return f"Due: {self.due_date_str}\nNote: {self.note}"
+        return f"Due: {self.__due_date_str}\nNote: {self.__note}"
 
 class StudyTask(Task):
 
@@ -191,7 +186,7 @@ class StudyTask(Task):
     def get_task_type(self) -> str:
         return "Study"
         
-    def get_retention_percent(self) -> Optional[float]:
+    def get_retention_percent(self) -> float:
 
         t = ((datetime.datetime.now() - self.__last_review).total_seconds())/ 86400
 
@@ -232,9 +227,6 @@ class WorkTask(Task):
         
     def get_task_type(self) -> str:
         return "Work"
-
-    def get_retention_percent(self) -> Optional[float]:
-        return None
     
     def is_due(self):
         return datetime.datetime.now() >= self.due_date
