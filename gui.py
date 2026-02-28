@@ -349,8 +349,8 @@ class TaskAddToplevel(customtkinter.CTkToplevel):
         self.name_entry = customtkinter.CTkEntry(self, placeholder_text="Task Name")
         self.name_entry.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
 
-        self.duedate_entry = customtkinter.CTkEntry(self, placeholder_text="Due Date (YYYY-MM-DD)")
-        self.duedate_entry.insert(0, (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d'))
+        self.dueDate_entry = customtkinter.CTkEntry(self, placeholder_text="Due Date (YYYY-MM-DD)")
+        self.dueDate_entry.insert(0, (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d'))
 
         self.note_entry = customtkinter.CTkEntry(self, placeholder_text="Note")
         self.note_entry.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
@@ -379,11 +379,11 @@ class TaskAddToplevel(customtkinter.CTkToplevel):
             widget.grid_forget()
         
         if new_type == "Work":
-            self.duedate_entry.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+            self.dueDate_entry.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
             self.priority_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
             self.priority_menu.grid(row=0, column=1, padx=5, pady=5, sticky="e")
         elif new_type == "Study":
-            self.duedate_entry.grid_forget()
+            self.dueDate_entry.grid_forget()
             self.study_info_label.grid(row=0, column=0, columnspan=2, padx=5, pady=5)
 
     def add_task(self):
@@ -400,7 +400,7 @@ class TaskAddToplevel(customtkinter.CTkToplevel):
             new_task = StudyTask(name, note)
             
         else:
-            due_date_str = self.duedate_entry.get()
+            due_date_str = self.dueDate_entry.get()
             if not due_date_str:
                 show_error("Due Date is required.")
                 return
@@ -464,11 +464,11 @@ class TaskEditToplevel(customtkinter.CTkToplevel):
         self.specific_fields_frame.grid_columnconfigure(1, weight=1)
 
         if isinstance(self.task, WorkTask):
-            self.duedate_label = customtkinter.CTkLabel(self.specific_fields_frame, text="Due Date:")
-            self.duedate_entry = customtkinter.CTkEntry(self.specific_fields_frame, placeholder_text="Due Date (YYYY-MM-DD)")
-            self.duedate_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-            self.duedate_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-            self.duedate_entry.insert(0, self.task.due_date_str)
+            self.dueDate_label = customtkinter.CTkLabel(self.specific_fields_frame, text="Due Date:")
+            self.dueDate_entry = customtkinter.CTkEntry(self.specific_fields_frame, placeholder_text="Due Date (YYYY-MM-DD)")
+            self.dueDate_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+            self.dueDate_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+            self.dueDate_entry.insert(0, self.task.due_date_str)
             
             self.priority_label = customtkinter.CTkLabel(self.specific_fields_frame, text="Priority:")
             self.priority_var = customtkinter.IntVar(value=self.task.priority)
@@ -502,7 +502,7 @@ class TaskEditToplevel(customtkinter.CTkToplevel):
         self.task.note = note
 
         if isinstance(self.task, WorkTask):
-            due_date_str = self.duedate_entry.get()
+            due_date_str = self.dueDate_entry.get()
             if not due_date_str:
                 show_error("Due Date is required.")
                 return
